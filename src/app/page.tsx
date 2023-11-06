@@ -6,6 +6,7 @@ import Header from "@/components/Header";
 import Sidebar from "@/components/Sidebar"
 import SidebarChatButton from "@/components/SidebarChatButton";
 import { Chat } from "@/types/Chat";
+import { openai } from "@/utils/openai";
 import { use, useEffect, useState } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -18,7 +19,6 @@ const page = () => {
   const [chatList, setChatList] = useState<Chat[]>([]);
   const [chatActive, setChatActive] = useState<Chat>();
   const [deleteClick, setDeleteClick] = useState(false);
-
   const [chatActiveId, setChatActiveId] = useState<string>('');
 
 
@@ -45,25 +45,30 @@ const page = () => {
   const openSidebar = () => setSidebarOpened(true);
   const closeSidebar = () => setSidebarOpened(false);
 
-  const getAIResponse = () => {
-    setTimeout(() => {
-      let chatListClone = [...chatList];
-      let chatIndex = chatListClone.findIndex(item => item.id === chatActiveId);
+  const getAIResponse = async () => {
+    let chatListClone = [...chatList];
+    let chatIndex = chatListClone.findIndex(item => item.id === chatActiveId);
 
-      if (chatIndex > -1) {
+    if (chatIndex > -1) {
+
+      const translated = openai.translateMessages(chatListClone[chatIndex].messages);
+      const response = await openai.generate(translated);
+
+
+      if(response){
         chatListClone[chatIndex].messages.push({
           id: uuidv4(),
           author: 'ai',
-          body: 'Aqui vai a resposta da AI'
+          body: response
         });
       }
 
+    }
 
-      setChatList(chatListClone);
 
-      setAiLoading(false);
+    setChatList(chatListClone);
 
-    }, 2000)
+    setAiLoading(false);
   }
 
   const handleDeleteOpenSidebar = () => {
@@ -87,6 +92,9 @@ const page = () => {
     closeSidebar();
 
   }
+
+
+
 
 
   const handleSendMessage = (message: string) => {
@@ -198,6 +206,8 @@ const page = () => {
         />
 
         <ChatArea chat={chatActive} loading={AiLoading} />
+
+      
 
         <Footer
           onSendMessage={handleSendMessage}
